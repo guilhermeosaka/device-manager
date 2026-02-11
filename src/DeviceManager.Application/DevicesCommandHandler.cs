@@ -28,4 +28,14 @@ public class DevicesCommandHandler(IRepository<Device> deviceRepository, IUnitOf
         
         await unitOfWork.SaveChangesAsync(ct);
     }
+    
+    public async Task HandleAsync(DeleteDeviceCommand command, CancellationToken ct = default)
+    {
+        var device = await deviceRepository.GetByIdAsync(command.Id);
+        
+        device.EnsureCanBeDeleted();
+        
+        deviceRepository.Remove(device);
+        await unitOfWork.SaveChangesAsync(ct);
+    }
 }

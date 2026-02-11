@@ -166,7 +166,7 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
         response.CreationTime.Should().Be(originalDevice.CreationTime);
     }
     
-    #endregion
+    #endregion Get
     
     #region List
     
@@ -254,7 +254,37 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
         response.Items.Should().HaveCount(expectedCount);
     }
 
-    #endregion
+    #endregion List
+    
+    #region Delete
+    
+    [Fact]
+    public async Task Delete_Success()
+    {
+        // Arrange
+        await ResetDbAsync();
+
+        var deviceToDelete = Device.Create("Deletable", "Deletable");
+        var deviceToLeaveAlone = Device.Create("Leave alone", "Leave alone");
+        await CreateDeviceAsync(deviceToDelete, deviceToLeaveAlone);
+    
+        // Act
+        var httpResponseMessage = await _client.DeleteAsync($"{BaseUrl}/{deviceToDelete.Id}");
+    
+        // Assert
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevicesDbContext>();
+        
+        var deviceToDeleteExists = await db.Devices.AnyAsync(c => c.Id == deviceToDelete.Id);
+        deviceToDeleteExists.Should().BeFalse();
+        
+        var deviceToLeaveAloneExists = await db.Devices.AnyAsync(c => c.Id == deviceToLeaveAlone.Id);
+        deviceToLeaveAloneExists.Should().BeTrue();
+    }
+    
+    #endregion Delete
     
     private async Task ResetDbAsync()
     {

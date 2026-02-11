@@ -127,6 +127,13 @@ public static class WebApplicationExtensions
             
             return Results.Ok(new PagedResponse<DeviceSummary>(devicesSummaries, devicesSummaries.Count));
         }).Produces<PagedResponse<DeviceSummary>>();
+
+        group.MapDelete("/{id:guid}", async (Guid id, DevicesCommandHandler handler, CancellationToken ct) =>
+            {
+                await handler.HandleAsync(new DeleteDeviceCommand(id), ct);
+                return Results.NoContent();
+            })
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     public static async Task RunMigrationsAsync(this WebApplication app)
