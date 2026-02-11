@@ -11,23 +11,23 @@ namespace DeviceManager.Api.Extensions;
 
 public static class WebApplicationExtensions
 {
+    private static readonly Dictionary<string, StateType> StatesMap = new()
+    {
+        { "available", StateType.Available },
+        { "in-use", StateType.InUse },
+        { "inactive", StateType.Inactive }
+    };
+        
+    private static readonly Dictionary<StateType, string> StatesUnmap = new()
+    {
+        { StateType.Available, "available" },
+        { StateType.InUse, "in-use" },
+        { StateType.Inactive, "inactive" }
+    };
+    
     // TODO: create a separate module and optionally use https://github.com/CarterCommunity/Carter
     public static void MapDeviceEndpoints(this WebApplication app)
     {
-        Dictionary<string, StateType> statesMap = new()
-        {
-            { "available", StateType.Available },
-            { "in-use", StateType.InUse },
-            { "inactive", StateType.Inactive }
-        };
-        
-        Dictionary<StateType, string> statesUnmap = new()
-        {
-            { StateType.Available, "available" },
-            { StateType.InUse, "in-use" },
-            { StateType.Inactive, "inactive" }
-        };
-        
         const string prefix = "/devices";
         const int maxPageSize = 50;
 
@@ -35,22 +35,11 @@ public static class WebApplicationExtensions
 
         group.MapPost("/", async (CreateDeviceRequest request, DevicesCommandHandler handler, CancellationToken ct) =>
             {
-                StateType? state = null;
-
-                if (request.State != null)
-                {
-                    if (!statesMap.TryGetValue(request.State.ToLowerInvariant(), out var foundState))
-                        return Results.Problem(
-                            title: "Invalid state",
-                            detail:
-                            $"Invalid device state: '{request.State}'. Use: {string.Join(", ", statesMap.Keys)}",
-                            statusCode: StatusCodes.Status400BadRequest);
-
-                    state = foundState;
-                }
+                if (!TryGetState(request.State, out var stateType))
+                    return InvalidStateProblem(request.State!);
 
                 var deviceId =
-                    await handler.HandleAsync(new CreateDeviceCommand(request.Name, request.Brand, state), ct);
+                    await handler.HandleAsync(new CreateDeviceCommand(request.Name, request.Brand, stateType), ct);
                 return Results.Created($"{prefix}/{deviceId}", new CreateDeviceResponse(deviceId));
             })
             .Produces<CreateDeviceResponse>(StatusCodes.Status201Created)
@@ -59,22 +48,10 @@ public static class WebApplicationExtensions
         group.MapPut("/{id:guid}",
                 async (Guid id, UpdateDeviceRequest request, DevicesCommandHandler handler, CancellationToken ct) =>
                 {
-                    // TODO: fix DRY issue 
-                    StateType? state = null;
+                    if (!TryGetState(request.State, out var stateType))
+                        return InvalidStateProblem(request.State!);
 
-                    if (request.State != null)
-                    {
-                        if (!statesMap.TryGetValue(request.State.ToLowerInvariant(), out var foundState))
-                            return Results.Problem(
-                                title: "Invalid state",
-                                detail:
-                                $"Invalid device state: '{request.State}'. Use: {string.Join(", ", statesMap.Keys)}",
-                                statusCode: StatusCodes.Status400BadRequest);
-
-                        state = foundState;
-                    }
-
-                    await handler.HandleAsync(new UpdateDeviceCommand(id, request.Name, request.Brand, state), ct);
+                    await handler.HandleAsync(new UpdateDeviceCommand(id, request.Name, request.Brand, stateType), ct);
 
                     return Results.NoContent();
                 })
@@ -88,7 +65,7 @@ public static class WebApplicationExtensions
                     device.Id,
                     device.Name,
                     device.Brand,
-                    statesUnmap[device.State],
+                    StatesUnmap[device.State],
                     device.CreationTime));
             })
             .Produces<DeviceSummary>();
@@ -101,28 +78,17 @@ public static class WebApplicationExtensions
             DevicesQueryHandler handler,
             CancellationToken ct) =>
         {
-            StateType? stateEnum = null;
-
-            if (state != null)
-            {
-                if (!statesMap.TryGetValue(state.ToLowerInvariant(), out var foundState))
-                    return Results.Problem(
-                        title: "Invalid state",
-                        detail:
-                        $"Invalid device state: '{state}'. Use: {string.Join(", ", statesMap.Keys)}",
-                        statusCode: StatusCodes.Status400BadRequest);
-
-                stateEnum = foundState;
-            }
-
+            if (!TryGetState(state, out var stateType))
+                return InvalidStateProblem(state!);
+            
             var devices = await handler.HandleAsync(
-                new GetDevicesQuery(page ?? 1, pageSize ?? maxPageSize, brand, stateEnum), ct);
+                new GetDevicesQuery(page ?? 1, pageSize ?? maxPageSize, brand, stateType), ct);
             
             var devicesSummaries = devices.Select(d => new DeviceSummary(
                 d.Id,
                 d.Name,
                 d.Brand,
-                statesUnmap[d.State],
+                StatesUnmap[d.State],
                 d.CreationTime)).ToList();
             
             return Results.Ok(new PagedResponse<DeviceSummary>(devicesSummaries, devicesSummaries.Count));
@@ -135,6 +101,26 @@ public static class WebApplicationExtensions
             })
             .Produces(StatusCodes.Status204NoContent);
     }
+
+    private static bool TryGetState(string? state, out StateType? stateType)
+    {
+        stateType = null;
+        if (state == null)
+            return true;
+
+        if (!StatesMap.TryGetValue(state.ToLowerInvariant(), out var foundStateType))
+            return false;
+
+        stateType = foundStateType;
+        return true;
+    }
+    
+    private static IResult InvalidStateProblem(string state) =>
+        Results.Problem(
+            title: "Invalid state",
+            detail:
+            $"Invalid device state: '{state}'. Use: {string.Join(", ", StatesMap.Keys)}",
+            statusCode: StatusCodes.Status400BadRequest);
 
     public static async Task RunMigrationsAsync(this WebApplication app)
     {

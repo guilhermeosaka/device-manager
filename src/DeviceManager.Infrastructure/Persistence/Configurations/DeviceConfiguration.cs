@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using DeviceManager.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DeviceManager.Infrastructure.Persistence.Configurations;
 
+[ExcludeFromCodeCoverage]
 public class DeviceConfiguration : IEntityTypeConfiguration<Device>
 {
     public void Configure(EntityTypeBuilder<Device> builder)

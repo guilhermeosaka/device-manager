@@ -1,9 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DeviceManager.Infrastructure.Persistence;
 
+[ExcludeFromCodeCoverage]
 public class DbMigrator(IServiceScopeFactory scopeFactory, ILogger<DbMigrator> logger)
 {
     public async Task MigrateAsync(CancellationToken ct = default)
