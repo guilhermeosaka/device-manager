@@ -1,4 +1,5 @@
 using DeviceManager.Domain.Abstractions;
+using DeviceManager.Domain.Entities;
 using DeviceManager.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +18,7 @@ public static class ServiceCollectionExtensions
                     maxRetryDelay: TimeSpan.FromSeconds(3),
                     errorCodesToAdd: null);
             }))
-            .AddScoped(typeof(IRepository<>), typeof(Repository<>))
+            .AddScoped<IRepository<Device>, DevicesRepository>()
             .AddScoped<IUnitOfWork, UnitOfWork>()
             .AddScoped<DbMigrator>();
 

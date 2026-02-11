@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using DeviceManager.Contracts.Requests;
 using DeviceManager.Contracts.Responses;
+using DeviceManager.Domain.Entities;
 using DeviceManager.Domain.Types;
 using DeviceManager.Infrastructure.Persistence;
 using FluentAssertions;
@@ -76,6 +77,68 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
     
     #endregion Create
     
+    #region Update
+    
+    [Theory]
+    [InlineData("New name", "New brand", "in-use", StateType.InUse)]
+    [InlineData(null, "New brand", "in-use", StateType.InUse)]
+    [InlineData("New name", null, "in-use", StateType.InUse)]
+    [InlineData("New name", "New brand", null, null)]
+    public async Task Update_Success(string? newName, string? newBrand, string? newState, StateType? newStateEnum)
+    {
+        // Arrange
+        await ResetDbAsync();
+
+        var originalDevice = Device.Create("Test name", "Test brand");
+        await CreateDeviceAsync(originalDevice);
+        
+        var currentDate = DateTimeOffset.UtcNow;
+        var request = new UpdateDeviceRequest(newName, newBrand, newState);
+    
+        // Act
+        var httpResponseMessage = await _client.PutAsJsonAsync($"{BaseUrl}/{originalDevice.Id}", request);
+    
+        // Assert
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevicesDbContext>();
+        
+        var updatedDevice = await db.Devices.FirstOrDefaultAsync(c => c.Id == originalDevice.Id);
+
+        updatedDevice.Should().NotBeNull();
+        updatedDevice.Name.Should().Be(newName ?? originalDevice.Name);
+        updatedDevice.Brand.Should().Be(newBrand ?? originalDevice.Brand);
+        updatedDevice.State.Should().Be(newState != null ? newStateEnum : originalDevice.State);
+        updatedDevice.CreationTime.Should().BeOnOrBefore(currentDate);
+    }
+    
+    [Theory]
+    [InlineData("unknown")]
+    [InlineData("inuse")]
+    [InlineData("active")]
+    public async Task Update_BadState_Failure(string state)
+    {
+        // Arrange
+        await ResetDbAsync();
+        
+        var originalDevice = Device.Create("Test name", "Test brand");
+        var request = new CreateDeviceRequest("Test name", "Test brand", state);
+    
+        // Act
+        var httpResponseMessage = await _client.PutAsJsonAsync($"{BaseUrl}/{originalDevice.Id}", request);
+    
+        // Assert
+        httpResponseMessage.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        
+        var problemDetails = await httpResponseMessage.Content.ReadFromJsonAsync<ProblemDetails>();
+        problemDetails.Should().NotBeNull();
+        problemDetails.Title.Should().Be("Invalid state");
+        problemDetails.Detail.Should().Be($"Invalid device state: '{state}'. Use: available, in-use, inactive");
+    }
+    
+    #endregion Update
+    
     private async Task ResetDbAsync()
     {
         using var scope = factory.Services.CreateScope();
@@ -83,5 +146,14 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
 
         await db.Database.EnsureDeletedAsync();
         await db.Database.EnsureCreatedAsync();
+    }
+    
+    private async Task CreateDeviceAsync(Device device)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<DevicesDbContext>();
+        
+        await db.Devices.AddAsync(device);
+        await db.SaveChangesAsync();
     }
 }
