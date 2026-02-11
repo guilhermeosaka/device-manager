@@ -156,7 +156,7 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
         // Assert
         httpResponseMessage.EnsureSuccessStatusCode();
         
-        var response = await httpResponseMessage.Content.ReadFromJsonAsync<GetDeviceResponse>();
+        var response = await httpResponseMessage.Content.ReadFromJsonAsync<DeviceSummary>();
         response.Should().NotBeNull();
         
         response.Id.Should().Be(originalDevice.Id);
@@ -168,6 +168,94 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
     
     #endregion
     
+    #region List
+    
+    [Fact]
+    public async Task List_NoFilter_Success()
+    {
+        // Arrange
+        await ResetDbAsync();
+
+        await CreateDeviceAsync(
+            Device.Create("Name 1", "Brand 1"),
+            Device.Create("Name 2", "Brand 1"),
+            Device.Create("Name 3", "Brand 2"),
+            Device.Create("Name 4", "Brand 2"),
+            Device.Create("Name 5", "Brand 3"),
+            Device.Create("Name 6", "Brand 3"));
+    
+        // Act
+        var httpResponseMessage = await _client.GetAsync($"{BaseUrl}");
+    
+        // Assert
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        var response = await httpResponseMessage.Content.ReadFromJsonAsync<PagedResponse<DeviceSummary>>();
+        response.Should().NotBeNull();
+        
+        response.Items.Should().HaveCount(6);
+    }
+    
+    [Theory]
+    [InlineData("Brand 1", 1)]
+    [InlineData("Brand 2", 2)]
+    [InlineData("Brand 3", 3)]
+    public async Task List_BrandFilter_Success(string brand, int expectedCount)
+    {
+        // Arrange
+        await ResetDbAsync();
+
+        await CreateDeviceAsync(
+            Device.Create("Name 1", "Brand 1"),
+            Device.Create("Name 2", "Brand 2"),
+            Device.Create("Name 3", "Brand 2"),
+            Device.Create("Name 4", "Brand 3"),
+            Device.Create("Name 5", "Brand 3"),
+            Device.Create("Name 6", "Brand 3"));
+    
+        // Act
+        var httpResponseMessage = await _client.GetAsync($"{BaseUrl}?brand={brand}");
+    
+        // Assert
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        var response = await httpResponseMessage.Content.ReadFromJsonAsync<PagedResponse<DeviceSummary>>();
+        response.Should().NotBeNull();
+        
+        response.Items.Should().HaveCount(expectedCount);
+    }
+    
+    [Theory]
+    [InlineData("available", 3)]
+    [InlineData("in-use", 2)]
+    [InlineData("inactive", 1)]
+    public async Task List_StateFilter_Success(string state, int expectedCount)
+    {
+        // Arrange
+        await ResetDbAsync();
+
+        await CreateDeviceAsync(
+            Device.Create("Name 1", "Brand 1", StateType.Available),
+            Device.Create("Name 2", "Brand 2", StateType.Available),
+            Device.Create("Name 3", "Brand 2", StateType.Available),
+            Device.Create("Name 4", "Brand 3", StateType.InUse),
+            Device.Create("Name 5", "Brand 3", StateType.InUse),
+            Device.Create("Name 6", "Brand 3", StateType.Inactive));
+    
+        // Act
+        var httpResponseMessage = await _client.GetAsync($"{BaseUrl}?state={state}");
+    
+        // Assert
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        var response = await httpResponseMessage.Content.ReadFromJsonAsync<PagedResponse<DeviceSummary>>();
+        response.Should().NotBeNull();
+        
+        response.Items.Should().HaveCount(expectedCount);
+    }
+
+    #endregion
+    
     private async Task ResetDbAsync()
     {
         using var scope = factory.Services.CreateScope();
@@ -177,12 +265,14 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
         await db.Database.EnsureCreatedAsync();
     }
     
-    private async Task CreateDeviceAsync(Device device)
+    private async Task CreateDeviceAsync(params Device[] devices)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DevicesDbContext>();
         
-        await db.Devices.AddAsync(device);
+        foreach (var device in devices)
+            await db.Devices.AddAsync(device);
+        
         await db.SaveChangesAsync();
     }
 }

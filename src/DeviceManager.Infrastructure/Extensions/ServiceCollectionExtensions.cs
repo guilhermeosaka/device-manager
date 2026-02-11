@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
                     errorCodesToAdd: null);
             }))
             .AddScoped<IRepository<Device>, DevicesRepository>()
+            .AddScoped<IDevicesQueries, DevicesQueries>()
             .AddScoped<IUnitOfWork, UnitOfWork>()
             .AddScoped<DbMigrator>();
 
