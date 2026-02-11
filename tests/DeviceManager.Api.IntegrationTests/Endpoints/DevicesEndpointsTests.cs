@@ -139,6 +139,35 @@ public class DevicesEndpointsTests(WebAppFactory factory) : IClassFixture<WebApp
     
     #endregion Update
     
+    #region Get 
+    
+    [Fact]
+    public async Task Get_Success()
+    {
+        // Arrange
+        await ResetDbAsync();
+
+        var originalDevice = Device.Create("Test name", "Test brand");
+        await CreateDeviceAsync(originalDevice);
+    
+        // Act
+        var httpResponseMessage = await _client.GetAsync($"{BaseUrl}/{originalDevice.Id}");
+    
+        // Assert
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        var response = await httpResponseMessage.Content.ReadFromJsonAsync<GetDeviceResponse>();
+        response.Should().NotBeNull();
+        
+        response.Id.Should().Be(originalDevice.Id);
+        response.Name.Should().Be(originalDevice.Name);
+        response.Brand.Should().Be(originalDevice.Brand);
+        response.State.Should().Be(originalDevice.State.ToString().Replace("-", " ").ToLowerInvariant());
+        response.CreationTime.Should().Be(originalDevice.CreationTime);
+    }
+    
+    #endregion
+    
     private async Task ResetDbAsync()
     {
         using var scope = factory.Services.CreateScope();

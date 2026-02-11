@@ -1,5 +1,6 @@
 using DeviceManager.Application;
 using DeviceManager.Application.Commands;
+using DeviceManager.Application.Queries;
 using DeviceManager.Contracts.Requests;
 using DeviceManager.Contracts.Responses;
 using DeviceManager.Domain.Types;
@@ -20,6 +21,13 @@ public static class WebApplicationExtensions
             { "available", StateType.Available },
             { "in-use", StateType.InUse },
             { "inactive", StateType.Inactive }
+        };
+
+        var statesUnmap = new Dictionary<StateType, string>
+        {
+            { StateType.Available, "available" },
+            { StateType.InUse, "in-use" },
+            { StateType.Inactive, "inactive" }
         };
 
         var group = app.MapGroup(prefix).ProducesProblem(StatusCodes.Status500InternalServerError);
@@ -47,7 +55,6 @@ public static class WebApplicationExtensions
             .Produces<CreateDeviceResponse>(StatusCodes.Status201Created)
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
-
         group.MapPut("/{id:guid}",
                 async (Guid id, UpdateDeviceRequest request, DevicesCommandHandler handler, CancellationToken ct) =>
                 {
@@ -72,6 +79,18 @@ public static class WebApplicationExtensions
                 })
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/{id:guid}", async (Guid id, DevicesQueryHandler handler, CancellationToken ct) =>
+        {
+            var device = await handler.HandleAsync(new GetDeviceQuery(id), ct);
+            return Results.Ok(new GetDeviceResponse(
+                device.Id, 
+                device.Name, 
+                device.Brand, 
+                statesUnmap[device.State],
+                device.CreationTime));
+        })
+        .Produces<GetDeviceResponse>();
     }
 
     public static async Task RunMigrationsAsync(this WebApplication app)

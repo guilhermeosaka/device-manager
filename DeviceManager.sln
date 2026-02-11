@@ -5,6 +5,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EF9B0FB5-3533-49A4-8A42-439309318231}"
 	ProjectSection(SolutionItems) = preProject
 		compose.yaml = compose.yaml
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceManager.Application", "src/DeviceManager.Application\DeviceManager.Application.csproj", "{D7045A7A-6FE5-43A5-ADAC-67D7123952C6}"
@@ -16,9 +17,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceManager.Contracts", "src/DeviceManager.Contracts\DeviceManager.Contracts.csproj", "{75539ACF-3D93-4785-98CE-E20169578545}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{92E6B3EB-A7DE-4FDB-921A-958C7652FDA0}"
-	ProjectSection(SolutionItems) = preProject
-		src\README.md = src\README.md
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D125D13E-9537-4BD6-8B99-D3266CF556B3}"
 EndProject
