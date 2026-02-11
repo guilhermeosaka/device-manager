@@ -1,0 +1,7 @@
+﻿services:
+  devicemanager.api:
+    image: devicemanager.api
+    build:
+      context: .
+      dockerfile: DeviceManager.Api/Dockerfile
+
