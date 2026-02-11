@@ -1,3 +1,4 @@
+using DeviceManager.Api.ExceptionHandling;
 using DeviceManager.Api.Extensions;
 using DeviceManager.Application.Extensions;
 using DeviceManager.Infrastructure.Extensions;
@@ -8,7 +9,9 @@ builder.Services
     .AddEndpointsApiExplorer()
     .AddSwaggerGen()
     .AddPersistence(builder.Configuration.GetConnectionString("DevicesDb")!)
-    .AddApplicationServices();
+    .AddApplicationServices()
+    .AddProblemDetails()
+    .AddExceptionHandler<ExceptionHandler>();
 
 var app = builder.Build();
 
@@ -21,7 +24,7 @@ if (app.Environment.IsDevelopment())
 await app.RunMigrationsAsync();
 
 app.MapDeviceEndpoints();
-
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.Run();

@@ -22,7 +22,7 @@ public static class WebApplicationExtensions
             { "inactive", StateType.Inactive }
         };
 
-        var group = app.MapGroup(prefix);
+        var group = app.MapGroup(prefix).ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/", async (CreateDeviceRequest request, DevicesCommandHandler handler, CancellationToken ct) =>
             {
