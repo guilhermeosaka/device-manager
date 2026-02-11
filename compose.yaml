@@ -1,7 +1,34 @@
 ﻿services:
+  postgres:
+    image: postgres:18.1
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql
+        
   devicemanager.api:
     image: devicemanager.api
+    restart: unless-stopped
     build:
       context: .
-      dockerfile: DeviceManager.Api/Dockerfile
+      dockerfile: src/DeviceManager.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DevicesDb: Host=postgres;Database=devices;Username=postgres;Password=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
 
+volumes:
+  postgres_data:
