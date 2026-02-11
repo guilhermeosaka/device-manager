@@ -5,13 +5,15 @@ namespace DeviceManager.Api.ExceptionHandling;
 
 public class ExceptionHandler : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception,
+        CancellationToken cancellationToken)
     {
         // TODO: log unexpected errors
-        
+
         var result = exception switch
         {
-            DeviceInUseException ex => Results.BadRequest(ex.Message),
+            DeviceInUseException ex =>
+                Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest),
             _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
         };
 

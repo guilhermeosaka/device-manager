@@ -99,7 +99,8 @@ public static class WebApplicationExtensions
                 await handler.HandleAsync(new DeleteDeviceCommand(id), ct);
                 return Results.NoContent();
             })
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);;
     }
 
     private static bool TryGetState(string? state, out StateType? stateType)
