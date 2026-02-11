@@ -8,7 +8,7 @@ public class DevicesCommandHandler(IRepository<Device> deviceRepository, IUnitOf
 {
     public async Task<Guid> HandleAsync(CreateDeviceCommand command, CancellationToken ct = default)
     {
-        var newDevice = Device.Create(command.Name, command.Brand);
+        var newDevice = Device.Create(command.Name, command.Brand, command.State);
         await deviceRepository.AddAsync(newDevice, ct);
         await unitOfWork.SaveChangesAsync(ct);
         return newDevice.Id;
