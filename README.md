@@ -12,13 +12,27 @@ A .NET-based service API with PostgreSQL database support.
 
 Run the following commands inside the root folder.
 
-### 1. Start Dependencies (PostgreSQL Database)
+### 1. Start dependencies (PostgreSQL database)
 
-Note: This will also start the application on port 5000
+Note: This will also start the containerized application on port 5000
 
 ```bash
 docker compose up -d
 ```
+
+### 2. Run the application locally
+
+```bash
+dotnet run --project src\DeviceManager.Api
+```
+
+or via IDE of your choice using `DeviceManager.Api` as the startup project.
+
+Note: `launchSettings.json` is configured to run the application on port `4000`
+
+### 3. Access the Swagger UI
+
+Swagger URL: http://localhost:4000/swagger
 
 ## Database Migration
 
